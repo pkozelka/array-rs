@@ -16,9 +16,15 @@ fn alloc_slice<'a, T>(len: usize) -> Result<Box<&'a mut [T]>, LayoutError> {
     }
 }
 
+fn dealloc_slice<T>(pointer: *mut T, len: usize) {
+    unsafe {
+        std::alloc::dealloc(transmute(pointer), Layout::array::<T>(len).unwrap());
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{to_slice_mut, alloc_slice};
+    use super::{alloc_slice, dealloc_slice, to_slice_mut};
 
     fn simulate_array_behind_ffi(a: &mut [i32]) -> (*mut i32, usize) {
         println!("ORIGINAL ARRAY: {a:?}");
@@ -56,5 +62,7 @@ mod tests {
 
         println!("SET AFTER ALLOC: {b:?}");
         assert_eq!([0,5,0,0,0], *b);
+
+        dealloc_slice::<i32>((*b).as_mut_ptr(), b.len())
     }
 }
